@@ -12,6 +12,7 @@ import {
   RouterProvider,
   createBrowserRouter,
 } from 'react-router-dom';
+import CharacterPage from './components/character/CharacterPage';
 
 const router = createBrowserRouter([
   {
@@ -22,7 +23,10 @@ const router = createBrowserRouter([
     path: "/guild",
     element: <GuildPage />,
   },
-  
+  {
+    path: "/character",
+    element: <CharacterPage />,
+  },
 ]);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
