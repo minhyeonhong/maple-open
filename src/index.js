@@ -1,9 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import App from './App';
+
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
+
+import App from './App';
+import GuildPage from './components/guild/GuildPage';
 
 import {
   RouterProvider,
@@ -15,7 +18,11 @@ const router = createBrowserRouter([
     path: "/",
     element: <App />,
   },
- 
+  {
+    path: "/guild",
+    element: <GuildPage />,
+  },
+  
 ]);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

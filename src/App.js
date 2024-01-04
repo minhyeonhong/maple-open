@@ -1,11 +1,10 @@
 import './App.css';
-import Header from './components/layout/Header';
-import Footer from './components/layout/Footer';
+import { Link } from "react-router-dom";
 
 function App(props) {
   return (
     <div className="App">
-      aaa
+      <Link to={'/guild'}><button>길드 검색</button></Link><br/>
     </div>
   );
 }
