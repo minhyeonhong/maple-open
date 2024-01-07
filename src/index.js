@@ -14,6 +14,13 @@ import {
 } from 'react-router-dom';
 import CharacterPage from './components/character/CharacterPage';
 
+import {
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
+
+const queryClient = new QueryClient();
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -31,9 +38,11 @@ const router = createBrowserRouter([
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <div>
-    <Header />
-    <RouterProvider router={router} />
-    <Footer />
-  </div>
+  <QueryClientProvider client={queryClient}>
+    <div>
+      <Header />
+      <RouterProvider router={router} />
+      <Footer />
+    </div>
+  </QueryClientProvider>
 );
