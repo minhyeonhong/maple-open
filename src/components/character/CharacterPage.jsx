@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { instance } from '../../api/instance';
+import { today, todayPluse } from '../../common/fn-js/date';
 
 const CharacterPage = () => {
-    const [character, setCharactor] = useState({
+    const [search, setSearch] = useState({
         character_name: "",
-
+    });
+    const [character, setCharactor] = useState({
     });
 
     const endpoints = [
@@ -30,17 +32,17 @@ const CharacterPage = () => {
     ];
 
     // 조회하고자 하는 전직 차수
-        // 0: 0차 스킬 및 제로 공용스킬
-        // 1: 1차 스킬
-        // 1.5: 1.5차 스킬
-        // 2: 2차 스킬
-        // 2.5: 2.5차 스킬
-        // 3: 3차 스킬
-        // 4: 4차 스킬 및 제로 알파/베타 스킬
-        // hyperpassive: 하이퍼 패시브 스킬
-        // hyperactive: 하이퍼 액티브 스킬
-        // 5: 5차 스킬
-        // 6: 6차 스킬
+    // 0: 0차 스킬 및 제로 공용스킬
+    // 1: 1차 스킬
+    // 1.5: 1.5차 스킬
+    // 2: 2차 스킬
+    // 2.5: 2.5차 스킬
+    // 3: 3차 스킬
+    // 4: 4차 스킬 및 제로 알파/베타 스킬
+    // hyperpassive: 하이퍼 패시브 스킬
+    // hyperactive: 하이퍼 액티브 스킬
+    // 5: 5차 스킬
+    // 6: 6차 스킬
     const skillOptions = [
         'hyperpassive',
         'hyperactive',
@@ -49,8 +51,10 @@ const CharacterPage = () => {
     ];
 
     const get_character_info = async () => {
-        const today = getFormattedDate();
-        const response = await instance.get(`${process.env.REACT_APP_MAPLE_BASE_URL}/maplestory/v1/id?character_name=${character.character_name}`, {
+        const two_days_ago = todayPluse(-2);
+        //오늘 날짜를 불러오면 에러나서 2이전 날짜로
+
+        const response = await instance.get(`${process.env.REACT_APP_MAPLE_BASE_URL}/maplestory/v1/id?character_name=${search.character_name}`, {
             headers: {
                 "x-nxopen-api-key": process.env.REACT_APP_MAPLE_KEY
             },
@@ -65,8 +69,8 @@ const CharacterPage = () => {
 
         const promises = endpoints.map(endpoint => {
             if (endpoint === 'skill') {
-                const skillPromises = skillOptions.map(skillOption => 
-                    instance.get(`${process.env.REACT_APP_MAPLE_BASE_URL}/maplestory/v1/character/${endpoint}?ocid=${ocid}&date=${today}&character_skill_grade=${skillOption}`, {
+                const skillPromises = skillOptions.map(skillOption =>
+                    instance.get(`${process.env.REACT_APP_MAPLE_BASE_URL}/maplestory/v1/character/${endpoint}?ocid=${ocid}&date=${two_days_ago}&character_skill_grade=${skillOption}`, {
                         headers: {
                             "x-nxopen-api-key": process.env.REACT_APP_MAPLE_KEY
                         },
@@ -74,65 +78,98 @@ const CharacterPage = () => {
                 );
                 return Promise.all(skillPromises);
             } else {
-                return instance.get(`${process.env.REACT_APP_MAPLE_BASE_URL}/maplestory/v1/character/${endpoint}?ocid=${ocid}&date=${today}`, {
+                return instance.get(`${process.env.REACT_APP_MAPLE_BASE_URL}/maplestory/v1/character/${endpoint}?ocid=${ocid}&date=${two_days_ago}`, {
                     headers: {
                         "x-nxopen-api-key": process.env.REACT_APP_MAPLE_KEY
                     },
                 });
             }
         });
-        
+
         const results = await Promise.all(promises);
-        
+
         const resultObjects = results.map((result, index) => {
-            if (endpoints[index] === 'skill') {
-                const skillResults = result.map((res, i) => ({
-                    key: skillOptions[i],
-                    value: res.data
-                }));
-                return {
-                    key: endpoints[index],
-                    value: skillResults
-                };
-            } else {
-                return {
-                    key: endpoints[index],
-                    value: result.data
-                };
-            }
+            const key = endpoints[index];
+            const value = (key === 'skill')
+                ? skillOptions.reduce((acc, skillOption, i) => ({ ...acc, [skillOption]: result[i].data }), {})
+                : result.data;
+
+            return { [key]: value };
         });
-        
-        console.log(resultObjects);
-        
 
-        //setCharactor({...character, oguild_id:response.data.oguild_id });
+        const combinedObject = Object.assign({}, ...resultObjects);
+
+        setCharactor(combinedObject);
+    }
+    const fetchRankingPage = async (page) => {
+
+        const response = await instance.get(`${process.env.REACT_APP_MAPLE_BASE_URL}/maplestory/v1/ranking/overall?date=${today}&page=${page}`, {
+            headers: {
+                "x-nxopen-api-key": process.env.REACT_APP_MAPLE_KEY
+            },
+        });
+
+        const ranking = response.data.ranking;
+        return { ranking };
     }
 
-    const getFormattedDate = () => {
-        const today = new Date();
-        const year = today.getFullYear();
-        let month = today.getMonth() + 1; // 월은 0부터 시작하므로 1을 더해줍니다.
-        let day = today.getDate();
+    const totalPages = 2;//2980; // 원하는 페이지 수
+    const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
 
-        // 한 자리 수인 경우 앞에 0을 추가해주기
-        month = month < 10 ? '0' + month : month;
-        day = day < 10 ? '0' + day : day;
-
-        const formattedDate = year + '-' + month + '-' + day;
-
-        const date = new Date(formattedDate);
-        date.setDate(date.getDate() - 2);
-        return date.toISOString().slice(0, 10);
+    const test = () => {
+        // const quotient = Math.floor(totalPages / perPage);
+        // const remainder = totalPages % perPage;
+        // const dd = Array.from({ length: quotient }, (_, index) => (index + 1) * 500);
+        // if (remainder !== 0) {
+        //     dd.push(
+        //         dd.length === 0 ? remainder :
+        //             dd[dd.length - 1] + remainder
+        //     );
+        // }
+        // console.log("몫:", quotient); // 출력: 5
+        // console.log("나머지:", remainder); // 출력: 480
+        // console.log("dd:", dd); // 출력: 480
     }
+
+    const fetchAllRankingPages = async () => {
+        try {
+            const promises = pageNumbers.map(page => fetchRankingPage(page));
+            const results = await Promise.all(promises);
+            const totalPages = results.length;
+            const perPage = 500;
+
+            //const test = Array.from({ length: totalPages }, (_, index) => results[index]);
+            const combinedArray = results.reduce((acc, current) => {
+                acc.ranking.push(...current.ranking);
+                return acc;
+            }, { ranking: [] });
+
+            // const paging = Array.from({ length: quotient }, (_, index) => (index + 1) * perPage);
+            // const quotient = Math.floor(totalPages / perPage);
+            // const remainder = totalPages % perPage;
+            // if (remainder !== 0) {
+            //     paging.push(
+            //         paging.length === 0 ? remainder :
+            //         paging[paging.length - 1] + remainder
+            //     );
+            // }
+
+            console.log('All ranking pages:', results);
+            console.log('totalPages:', combinedArray);
+        } catch (error) {
+            console.error('Error fetching ranking pages:', error);
+        }
+    };
 
     useEffect(() => {
-        //        setCharactor({ ...character, today: getFormattedDate() });
+        console.log(character);
     }, [character])
 
     return (
         <div>
-            <input type='text' name='character_name' value={character.character_name || ""} onChange={(e) => setCharactor({ ...character, [e.target.name]: e.target.value })} />
-            <button onClick={get_character_info}>캐릭터 정보 가져오기</button>
+            <input type='text' name='character_name' value={search.character_name || ""} onChange={(e) => setSearch({ ...search, [e.target.name]: e.target.value })} />
+            <button onClick={get_character_info}>캐릭터 정보 가져오기</button><br />
+            <button onClick={fetchAllRankingPages}>캐릭터 랭킹 검색</button>
         </div>
     );
 };
